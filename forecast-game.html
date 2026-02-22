@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORECAST — The Beverage Oracle</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f0e;
+    --surface: #141816;
+    --border: #252a26;
+    --gold: #c9a84c;
+    --gold-dim: #7a6430;
+    --green: #3ddb7a;
+    --red: #e05252;
+    --amber: #f59e0b;
+    --text: #e8ede9;
+    --muted: #6b7a6e;
+    --accent: #c9a84c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(13,15,14,0.95);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--gold);
+  }
+
+  .logo span { color: var(--text); opacity: 0.5; font-size: 13px; display: block; letter-spacing: 2px; font-family: 'DM Mono', monospace; }
+
+  .header-stats {
+    display: flex;
+    gap: 32px;
+  }
+
+  .stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .stat-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  .stat-value { font-size: 18px; color: var(--gold); font-weight: 500; }
+
+  /* MAIN LAYOUT */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 40px;
+  }
+
+  /* SCREENS */
+  .screen { display: none; animation: fadeIn 0.4s ease; }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* INTRO SCREEN */
+  .intro-hero {
+    text-align: center;
+    padding: 60px 0 40px;
+  }
+
+  .intro-eyebrow {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .intro-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(48px, 8vw, 90px);
+    line-height: 0.95;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #e8ede9 30%, var(--gold) 70%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .intro-title em {
+    font-style: italic;
+    color: var(--gold);
+    -webkit-text-fill-color: var(--gold);
+  }
+
+  .intro-desc {
+    max-width: 560px;
+    margin: 0 auto 48px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .intro-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 48px 0;
+    text-align: left;
+  }
+
+  .intro-card {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .intro-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.5;
+  }
+
+  .intro-card-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .intro-card-title { font-size: 12px; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; margin-bottom: 8px; }
+  .intro-card-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-block;
+    padding: 14px 36px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+
+  .btn:hover { background: var(--gold); color: var(--bg); }
+  .btn-primary { background: var(--gold); color: var(--bg); }
+  .btn-primary:hover { background: #dbb85c; }
+  .btn-ghost { border-color: var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--muted); color: var(--text); background: transparent; }
+  .btn-sm { padding: 8px 20px; font-size: 10px; }
+
+  /* GAME LAYOUT */
+  .game-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* SECTION CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .card-badge {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    background: rgba(201,168,76,0.15);
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  /* SCENARIO */
+  .scenario-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .scenario-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .scenario-brief {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.7;
+    opacity: 0.8;
+    margin-bottom: 20px;
+    padding: 16px;
+    border-left: 2px solid var(--gold-dim);
+    background: rgba(201,168,76,0.04);
+  }
+
+  /* DATA SIGNALS */
+  .signals-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .signal {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: default;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+
+  .signal:hover { border-color: var(--gold-dim); }
+
+  .signal-icon { font-size: 20px; margin-bottom: 6px; }
+  .signal-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .signal-value { font-size: 16px; color: var(--text); font-weight: 500; }
+  .signal-trend { font-size: 10px; margin-top: 2px; }
+  .trend-up { color: var(--green); }
+  .trend-down { color: var(--red); }
+  .trend-flat { color: var(--muted); }
+
+  /* CHART */
+  .chart-wrap {
+    position: relative;
+    height: 140px;
+    margin: 16px 0;
+  }
+
+  canvas { width: 100% !important; height: 100% !important; }
+
+  .chart-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* FORECAST INPUT */
+  .forecast-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .unit-display {
+    font-family: 'DM Serif Display', serif;
+    font-size: 52px;
+    color: var(--gold);
+    text-align: center;
+    line-height: 1;
+    margin: 8px 0;
+    transition: all 0.1s;
+  }
+
+  .unit-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-align: center; margin-bottom: 16px; }
+
+  .slider-wrap { position: relative; margin: 20px 0; }
+  
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--gold);
+  }
+
+  .slider-bounds {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* CONFIDENCE METER */
+  .confidence-track {
+    display: flex;
+    gap: 4px;
+    margin: 12px 0;
+  }
+
+  .conf-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .conf-btn.active-low { border-color: var(--red); color: var(--red); background: rgba(224,82,82,0.1); }
+  .conf-btn.active-med { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.1); }
+  .conf-btn.active-high { border-color: var(--green); color: var(--green); background: rgba(61,219,122,0.1); }
+  .conf-btn:hover { border-color: var(--muted); color: var(--text); }
+
+  /* REASONING */
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 12px;
+    border-radius: 3px;
+    resize: none;
+    line-height: 1.6;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--gold-dim); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* RESULT SCREEN */
+  .result-hero { text-align: center; padding: 32px 0; }
+  
+  .result-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 96px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .score-grade {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    margin-bottom: 6px;
+  }
+
+  .result-meta { color: var(--muted); font-size: 11px; letter-spacing: 2px; }
+
+  .result-breakdown {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 32px 0;
+  }
+
+  .breakdown-item {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .breakdown-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .breakdown-val { font-size: 24px; font-weight: 500; }
+
+  .lesson-box {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    padding: 20px 24px;
+    background: var(--surface);
+    border-radius: 0 4px 4px 0;
+    margin: 20px 0;
+  }
+
+  .lesson-title { font-size: 9px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase; margin-bottom: 8px; }
+  .lesson-text { font-size: 13px; color: var(--text); line-height: 1.7; opacity: 0.85; }
+
+  /* HISTORY */
+  .history-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .history-row:last-child { border-bottom: none; }
+  .history-label { flex: 1; color: var(--muted); }
+  .history-score { width: 48px; text-align: right; color: var(--gold); font-weight: 500; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* NOTIFICATIONS */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text);
+    z-index: 1000;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* LEADERBOARD / ROUNDS */
+  .round-indicator {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .round-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .round-dot.done { background: var(--gold-dim); }
+  .round-dot.current { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+
+  /* OUTCOME ROW */
+  .outcome-compare {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+
+  .outcome-side {
+    flex: 1;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .outcome-side:first-child { border-right: 1px solid var(--border); }
+  .outcome-side-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .outcome-side-val { font-family: 'DM Serif Display', serif; font-size: 36px; }
+
+  .error-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin-top: 12px;
+  }
+
+  .error-good { background: rgba(61,219,122,0.15); color: var(--green); }
+  .error-ok { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .error-bad { background: rgba(224,82,82,0.15); color: var(--red); }
+
+  .tip-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin: 4px;
+    cursor: default;
+  }
+
+  .tag-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold-dim); }
+
+  /* Welcome animation */
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">FORECAST</div>
+    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:2px;">BEVERAGE ORACLE · TRAINING SIM</div>
+  </div>
+  <div class="header-stats" id="header-stats" style="display:none">
+    <div class="stat-pill">
+      <span class="stat-label">Round</span>
+      <span class="stat-value" id="hd-round">—</span>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-label">Avg Score</span>
+      <span class="stat-value" id="hd-avg">—</span>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-label">Forecaster</span>
+      <span class="stat-value" style="font-size:13px;color:var(--text)" id="hd-level">Novice</span>
+    </div>
+    <div class="round-indicator" id="round-dots"></div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- INTRO SCREEN -->
+  <div class="screen active" id="screen-intro">
+    <div class="intro-hero">
+      <div class="intro-eyebrow">A Simulation Game for Decision Makers</div>
+      <h1 class="intro-title">The Art of<br><em>Forecasting</em></h1>
+      <p class="intro-desc">You're the demand planner at Meridian Beverage Co. Real data, real consequences. Predict sales, build your intuition, and learn why the best forecasters aren't always right — but they know <em>why</em> they're wrong.</p>
+    </div>
+
+    <div style="max-width:680px;margin:40px auto;text-align:left;line-height:2;font-size:14px;color:var(--text);opacity:0.85;">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--gold);letter-spacing:3px;margin-right:8px">01 Read the Signals.</span>Scan market data, weather patterns, promotions, and competitor moves — not all signals matter equally, and you decide how to weight them.
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--gold);letter-spacing:3px;margin-right:8px;margin-left:4px">02 Commit a Number.</span>Set your forecast in cases and express your confidence. Vague ranges cost you — real forecasters commit.
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--gold);letter-spacing:3px;margin-right:8px;margin-left:4px">03 Learn from Variance.</span>Discover the actual outcome, see where your reasoning succeeded or failed, and build a sharper mental model with every round.
+    </div>
+
+    <div style="text-align:center;margin-top:16px;">
+      <div style="margin-bottom:24px;">
+        <div style="margin-bottom:12px;font-size:10px;letter-spacing:2px;color:var(--muted)">SIGNAL TYPES YOU'LL INTERPRET</div>
+        <div>
+          <span class="tip-pill"><span class="tag-dot"></span> Seasonal Trends</span>
+          <span class="tip-pill"><span class="tag-dot"></span> Promotions & Deals</span>
+          <span class="tip-pill"><span class="tag-dot"></span> Weather Forecasts</span>
+          <span class="tip-pill"><span class="tag-dot"></span> Competitor Activity</span>
+          <span class="tip-pill"><span class="tag-dot"></span> Economic Indicators</span>
+          <span class="tip-pill"><span class="tag-dot"></span> Social Sentiment</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="startGame()" style="font-size:13px;padding:16px 52px;letter-spacing:4px;">BEGIN SIMULATION →</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="screen-game">
+    <div class="game-grid">
+
+      <!-- LEFT: Scenario + Signals -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Scenario Brief</span>
+            <span class="card-badge" id="scenario-tag">Round 1</span>
+          </div>
+          <div class="scenario-name" id="scenario-name">Loading...</div>
+          <div class="scenario-sub" id="scenario-sub">Meridian Beverage Co. · Q2</div>
+          <div class="scenario-brief" id="scenario-brief">Loading scenario...</div>
+          <div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">HISTORICAL BASELINE (CASES/WEEK)</div>
+          <div class="chart-wrap"><canvas id="history-chart"></canvas></div>
+          <div class="chart-labels" id="chart-labels"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Market Signals</span>
+            <span class="card-badge" id="signal-count-badge">6 indicators</span>
+          </div>
+          <div class="signals-grid" id="signals-grid"></div>
+        </div>
+
+        <div class="card" id="technique-card">
+          <div class="card-header">
+            <span class="card-title">Forecasting Concept</span>
+            <span class="card-badge" style="background:rgba(61,219,122,0.1);color:var(--green)">Learn</span>
+          </div>
+          <div id="technique-content"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Forecast Panel -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Your Forecast</span>
+            <span class="card-badge">Next 4 Weeks</span>
+          </div>
+
+          <div class="forecast-label">Predicted Volume</div>
+          <div class="unit-display" id="forecast-display">1,200</div>
+          <div class="unit-sub">CASES / 4 WEEKS</div>
+
+          <div class="slider-wrap">
+            <input type="range" id="forecast-slider" min="200" max="4000" value="1200" step="50" oninput="updateForecast(this.value)">
+            <div class="slider-bounds">
+              <span id="slider-min">200 cases</span>
+              <span id="slider-max">4,000 cases</span>
+            </div>
+          </div>
+
+          <div class="forecast-label" style="margin-top:20px">Your Confidence Level</div>
+          <div class="confidence-track">
+            <button class="conf-btn" id="conf-low" onclick="setConfidence('low')">Low</button>
+            <button class="conf-btn" id="conf-med" onclick="setConfidence('med')">Medium</button>
+            <button class="conf-btn" id="conf-high" onclick="setConfidence('high')">High</button>
+          </div>
+          <div id="conf-hint" style="font-size:10px;color:var(--muted);min-height:20px;margin-top:4px;"></div>
+
+          <div class="forecast-label" style="margin-top:20px">Your Reasoning</div>
+          <textarea id="reasoning-box" rows="5" placeholder="What signals are you weighting most heavily? What assumptions are you making? What could surprise you?..."></textarea>
+
+          <div style="margin-top:20px">
+            <div class="forecast-label">Bias Check</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:12px">Which cognitive traps might be affecting you?</div>
+            <div id="bias-checks"></div>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%;margin-top:24px;font-size:12px;padding:16px" onclick="submitForecast()">SUBMIT FORECAST →</button>
+        </div>
+
+        <div class="card" id="score-history-card" style="display:none">
+          <div class="card-header">
+            <span class="card-title">Performance History</span>
+          </div>
+          <div id="score-history-list"></div>
+          <div style="margin-top:16px">
+            <div class="forecast-label">Running Average</div>
+            <div class="progress-bar"><div class="progress-fill" id="avg-bar" style="width:0%"></div></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px"><span id="avg-score-text">—</span> / 100</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div class="screen" id="screen-result">
+    <div class="game-grid">
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Forecast Outcome</span>
+            <span class="card-badge" id="result-round-badge">Round 1</span>
+          </div>
+
+          <div class="outcome-compare">
+            <div class="outcome-side">
+              <div class="outcome-side-label">Your Forecast</div>
+              <div class="outcome-side-val" id="result-your" style="color:var(--gold)">—</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px">cases</div>
+            </div>
+            <div class="outcome-side">
+              <div class="outcome-side-label">Actual Demand</div>
+              <div class="outcome-side-val" id="result-actual" style="color:var(--text)">—</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px">cases</div>
+            </div>
+          </div>
+
+          <div style="text-align:center;margin:8px 0 20px">
+            <span id="error-badge" class="error-badge">—</span>
+          </div>
+
+          <div id="result-score-block" class="result-hero">
+            <div class="result-score" id="result-score-num" style="color:var(--gold)">—</div>
+            <div class="score-grade" id="result-grade">—</div>
+            <div class="result-meta" id="result-meta-text">—</div>
+          </div>
+
+          <div class="result-breakdown" id="result-breakdown"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">The Debrief</span>
+            <span class="card-badge" style="background:rgba(201,168,76,0.1);color:var(--gold)">Analysis</span>
+          </div>
+          <div id="debrief-content"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Signal Review</span>
+          </div>
+          <div id="signal-review"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Lesson Learned</span>
+          </div>
+          <div class="lesson-box">
+            <div class="lesson-title" id="lesson-title">Forecasting Principle</div>
+            <div class="lesson-text" id="lesson-text">—</div>
+          </div>
+          <div style="text-align:center;margin-top:24px;display:flex;gap:12px;justify-content:center">
+            <button class="btn btn-ghost btn-sm" onclick="goToIntro()" id="end-btn" style="display:none">View Final Report</button>
+            <button class="btn btn-primary" onclick="nextRound()" id="next-btn">NEXT SCENARIO →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL SCREEN -->
+  <div class="screen" id="screen-final">
+    <div style="text-align:center;padding:60px 0 40px">
+      <div class="intro-eyebrow">Simulation Complete</div>
+      <h2 class="intro-title" style="font-size:clamp(40px,6vw,72px)">Your Forecast<br><em>Report Card</em></h2>
+    </div>
+    <div class="result-breakdown" id="final-breakdown"></div>
+    <div id="final-lessons"></div>
+    <div style="text-align:center;margin-top:40px">
+      <button class="btn btn-primary" onclick="resetGame()" style="padding:16px 48px">PLAY AGAIN →</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ DATA ============
+const SCENARIOS = [
+  {
+    name: "Summer Storm",
+    sub: "Cold Brew Coffee · Q2 Heatwave Season",
+    brief: "Your flagship cold brew line is entering summer. Last week, a viral TikTok featuring your Vanilla Nitro SKU hit 4M views. The heat index forecast shows record-breaking temps for the next 4 weeks. But your main grocery chain partner just cut shelf space by 15% to make room for a competitor's launch.",
+    product: "Cold Brew Coffee",
+    baseline: [820, 890, 850, 910, 870, 960, 1020, 1100],
+    actualMultiplier: 1.42,
+    sliderMin: 400, sliderMax: 3500, sliderDefault: 1100,
+    signals: [
+      { icon: "🌡️", label: "Heat Index Forecast", value: "+11°F above avg", trend: "up", weight: "high" },
+      { icon: "📱", label: "Social Virality", value: "4.2M TikTok views", trend: "up", weight: "high" },
+      { icon: "🏪", label: "Shelf Space Change", value: "−15% at key accounts", trend: "down", weight: "med" },
+      { icon: "📈", label: "Category Growth (YoY)", value: "+23% RTD Coffee", trend: "up", weight: "med" },
+      { icon: "💰", label: "Promo Status", value: "No active promotions", trend: "flat", weight: "low" },
+      { icon: "🏭", label: "Competitor Launch", value: "RivalBrew entering cold brew", trend: "down", weight: "med" },
+    ],
+    technique: {
+      title: "Base Rate + Adjustment",
+      body: "Start with your baseline (what normally happens), then systematically adjust for each signal. Avoid jumping straight to the dramatic narrative — viral TikToks spike and fade. Weight signals by their historical predictive power, not their emotional salience."
+    },
+    lesson: { title: "Recency Bias", text: "The TikTok likely made you over-index on virality. Social spikes are real but temporary — the heat wave was the more durable demand driver. Good forecasters separate 'exciting but noisy' signals from 'boring but reliable' ones." }
+  },
+  {
+    name: "The January Effect",
+    sub: "Sparkling Water · New Year Detox Season",
+    brief: "Your premium sparkling water brand historically sees a January surge from New Year's resolutions. This year, a major grocery chain is featuring you in their 'Healthy New Year' end-cap display. However, a hard winter storm is forecast for weeks 2–3, and consumer confidence index just dropped to its lowest in 18 months.",
+    product: "Premium Sparkling Water",
+    baseline: [600, 580, 610, 590, 640, 660, 700, 720],
+    actualMultiplier: 1.18,
+    sliderMin: 300, sliderMax: 2500, sliderDefault: 780,
+    signals: [
+      { icon: "🎯", label: "End-Cap Promotion", value: "Featured display, 800 stores", trend: "up", weight: "high" },
+      { icon: "🌨️", label: "Winter Storm Forecast", value: "Weeks 2–3 severe", trend: "down", weight: "med" },
+      { icon: "📊", label: "Consumer Confidence", value: "18-month low", trend: "down", weight: "med" },
+      { icon: "🧘", label: "Health Search Trend", value: "+45% 'detox water' searches", trend: "up", weight: "low" },
+      { icon: "📅", label: "Seasonal Index", value: "Jan historically +22% vs Dec", trend: "up", weight: "high" },
+      { icon: "🛒", label: "Retailer Inventory", value: "Stocked 20% above normal", trend: "up", weight: "low" },
+    ],
+    technique: {
+      title: "Seasonal Decomposition",
+      body: "Separate what's 'seasonal' (happens every year) from what's 'exceptional' (this year only). January water uplift is structural — it happens regardless. Layer your exceptional factors (promo, weather) on top of the baseline seasonal index."
+    },
+    lesson: { title: "The Anchoring Effect", text: "Most forecasters anchored too heavily on the seasonal uplift history and missed the compounding effect of the end-cap promotion. Promotions at retail are among the highest-impact short-term demand drivers, often worth 30–60% incremental lift on their own." }
+  },
+  {
+    name: "The Hangover",
+    sub: "Energy Drinks · Post-Super Bowl Slump",
+    brief: "Your Energy+ line just came off its best month ever — a Super Bowl promotion pushed 2,400 cases in 4 weeks. Now you're forecasting the following 4 weeks. The promo has ended, no major events on the calendar, and early retailer sell-through data shows slower velocity than expected. One bright spot: a new gym chain partnership launches mid-period.",
+    product: "Energy+ Drink Line",
+    baseline: [1400, 1380, 1450, 1500, 1600, 1900, 2100, 2400],
+    actualMultiplier: 0.62,
+    sliderMin: 500, sliderMax: 3500, sliderDefault: 2000,
+    signals: [
+      { icon: "📉", label: "Promo Effect Ended", value: "Super Bowl campaign closed", trend: "down", weight: "high" },
+      { icon: "🏋️", label: "Gym Chain Partnership", value: "Launch in Week 2", trend: "up", weight: "med" },
+      { icon: "📦", label: "Retailer Sell-Through", value: "68% — below 80% target", trend: "down", weight: "high" },
+      { icon: "🗓️", label: "Calendar Check", value: "No major events/holidays", trend: "flat", weight: "med" },
+      { icon: "💡", label: "New Consumer Trials", value: "+18K first-time buyers in promo", trend: "up", weight: "low" },
+      { icon: "🔄", label: "Repeat Purchase Rate", value: "Only 22% returning (est.)", trend: "down", weight: "high" },
+    ],
+    technique: {
+      title: "Post-Promo Regression",
+      body: "The hardest forecast to get right: what comes after a spike? Demand spikes pull forward future purchases and attract non-loyal buyers. The 'reversion to mean' is almost always steeper than forecasters expect. Use repeat purchase rate as your anchor, not the promotional peak."
+    },
+    lesson: { title: "The Narrative Fallacy", text: "The gym partnership and new trial customers made a compelling growth story. But slow sell-through and low repeat rates were hard quantitative signals pointing to reversion. When a compelling narrative conflicts with hard data, the data is usually right." }
+  },
+  {
+    name: "Grocery Roulette",
+    sub: "Craft Kombucha · New Distribution Wave",
+    brief: "Your Kombucha brand just secured listings in 600 new Midwest grocery locations, expanding from 400 to 1,000 stores. New distribution always brings uncertainty. The category is growing 31% nationally, but Midwest health-food adoption typically lags coasts by 2–3 years. You have 90 days to prove the listing or face delisting.",
+    product: "Craft Kombucha",
+    baseline: [180, 200, 195, 220, 240, 255, 260, 280],
+    actualMultiplier: 2.1,
+    sliderMin: 100, sliderMax: 2000, sliderDefault: 560,
+    signals: [
+      { icon: "🗺️", label: "Store Expansion", value: "+600 new locations (2.5x)", trend: "up", weight: "high" },
+      { icon: "🌿", label: "Category Growth", value: "+31% national kombucha", trend: "up", weight: "med" },
+      { icon: "📍", label: "Regional Index", value: "Midwest 40% below coastal adoption", trend: "down", weight: "med" },
+      { icon: "🆕", label: "New SKUs Launching", value: "Mango & Ginger varieties", trend: "up", weight: "low" },
+      { icon: "⏱️", label: "Distribution Ramp", value: "New stores take 6–8 weeks to fill", trend: "flat", weight: "high" },
+      { icon: "🎯", label: "Velocity in Current Stores", value: "0.7 cases/store/week", trend: "flat", weight: "high" },
+    ],
+    technique: {
+      title: "Distribution-Weighted Forecasting",
+      body: "When stores expand, don't just multiply. New stores ramp slowly: first few weeks are fill-in orders (artificially high), then stabilize at 'everyday velocity.' Use your existing store velocity as the benchmark, apply a ramp curve, and discount for regional adoption lag."
+    },
+    lesson: { title: "The Scaling Illusion", text: "Many under-forecasted here by applying regional lag too aggressively. Initial distribution ramp (store fill) creates real demand regardless of consumer adoption rates. The 6-week fill-in period alone can represent 30–40% above steady-state velocity." }
+  },
+  {
+    name: "The Perfect Storm",
+    sub: "Hard Seltzer · Summer Festival Season",
+    brief: "It's peak festival season. Your Hard Seltzer is sponsoring three major music festivals. Heat wave continues. But a new FDA labeling requirement takes effect Week 3, requiring a packaging change that will slow your production line by 30% for 10 days. Raw material costs just jumped 18%, forcing a suggested retail price increase of $0.50/case next month.",
+    product: "Hard Seltzer Festival Pack",
+    baseline: [900, 950, 1000, 1100, 1200, 1300, 1400, 1500],
+    actualMultiplier: 0.88,
+    sliderMin: 500, sliderMax: 4000, sliderDefault: 1800,
+    signals: [
+      { icon: "🎵", label: "Festival Sponsorships", value: "3 major events, 200K+ attendance", trend: "up", weight: "high" },
+      { icon: "☀️", label: "Heat Wave", value: "Temps 8–12°F above seasonal avg", trend: "up", weight: "med" },
+      { icon: "⚠️", label: "FDA Packaging Rule", value: "30% production cut — 10 days, Week 3", trend: "down", weight: "high" },
+      { icon: "💲", label: "Price Increase Signal", value: "+$0.50 retail, Month End", trend: "down", weight: "med" },
+      { icon: "📊", label: "Hard Seltzer Category", value: "Growth slowing — +8% vs +31% prior yr", trend: "flat", weight: "med" },
+      { icon: "🔔", label: "Pre-Orders from Distributors", value: "Orders up 40% vs prior period", trend: "up", weight: "low" },
+    ],
+    technique: {
+      title: "Constraint-Based Forecasting",
+      body: "Demand and supply are both part of the forecast. Unconstrained demand might be 2,200 cases — but if your supply is capped at 1,400 due to the production slowdown, your shipment forecast must reflect that. Always check: am I forecasting demand or shipments?"
+    },
+    lesson: { title: "Supply ≠ Demand", text: "The production constraint was the critical signal, but most forecasters focus on demand side signals (festivals, heat wave, distributor orders) and miss supply constraints. The distributor pre-orders were actually a forward-buying signal — customers stocking up before the price increase, distorting the demand picture." }
+  },
+  {
+    name: "The Health Pivot",
+    sub: "Functional Juice · Wellness Trend Surge",
+    brief: "Your adaptogen-infused juice line has been quietly growing at 8% per quarter. A prominent wellness podcast with 3M subscribers just dedicated an entire episode to adaptogens, specifically naming your Ashwagandha Citrus SKU. A national pharmacy chain is simultaneously rolling out a new 'Wellness Aisle' planogram that doubles your facing count. But your top contract manufacturer just flagged a 3-week lead time extension on ashwagandha extract.",
+    product: "Adaptogen Juice",
+    baseline: [310, 320, 335, 340, 350, 360, 375, 390],
+    actualMultiplier: 1.65,
+    sliderMin: 200, sliderMax: 2500, sliderDefault: 650,
+    signals: [
+      { icon: "🎙️", label: "Podcast Feature", value: "3M listener episode, direct name-drop", trend: "up", weight: "high" },
+      { icon: "💊", label: "Pharmacy Planogram", value: "2x shelf facing, 1,200 stores", trend: "up", weight: "high" },
+      { icon: "🌿", label: "Ingredient Shortage Risk", value: "3-week ashwagandha lead delay", trend: "down", weight: "high" },
+      { icon: "📱", label: "Search Volume", value: "'Ashwagandha drink' +380% WoW", trend: "up", weight: "med" },
+      { icon: "🏃", label: "Wellness Category Trend", value: "Functional beverages +19% YoY", trend: "up", weight: "med" },
+      { icon: "💵", label: "Avg Selling Price", value: "$6.49 — premium tier, low price sensitivity", trend: "flat", weight: "low" },
+    ],
+    technique: {
+      title: "Earned vs. Paid Media Lift",
+      body: "Earned media (podcast mentions, organic press) drives a different demand curve than paid ads. It creates a slow build with a long tail rather than a sharp spike. Combine the media reach × category conversion rate to estimate incremental demand, then stress-test against your supply constraints before committing."
+    },
+    lesson: { title: "Ignoring Ingredient Risk", text: "Most forecasters nailed the demand side — the podcast and planogram expansion were powerful signals. The trap was ignoring the ingredient shortage. You can't sell what you can't make. Supply risk needs to be baked into your shipment forecast even when demand signals are bullish." }
+  },
+  {
+    name: "Price War",
+    sub: "Premium RTD Tea · Competitor Discounting",
+    brief: "Your premium bottled tea brand holds a 22% market share at $3.99 MSRP. A private-label competitor just slashed prices to $1.99 and secured prominent end-cap placement at your top two retail accounts. Your marketing team wants to hold price to protect margin. Simultaneously, a new Costco trial listing for your brand launches this period across 180 locations.",
+    product: "Premium RTD Tea",
+    baseline: [750, 780, 800, 820, 810, 830, 850, 870],
+    actualMultiplier: 0.79,
+    sliderMin: 300, sliderMax: 2500, sliderDefault: 900,
+    signals: [
+      { icon: "💸", label: "Competitor Price Cut", value: "Private label now $1.99 vs your $3.99", trend: "down", weight: "high" },
+      { icon: "🏬", label: "Competitor End-Cap", value: "Prime placement at top 2 accounts", trend: "down", weight: "high" },
+      { icon: "🏢", label: "Costco Trial Listing", value: "180 clubs, launching this period", trend: "up", weight: "high" },
+      { icon: "💎", label: "Brand Price Elasticity", value: "Historical: −0.4 for +10% price gap", trend: "down", weight: "med" },
+      { icon: "📣", label: "Marketing Response", value: "Holding price, no promo planned", trend: "flat", weight: "med" },
+      { icon: "🧃", label: "Loyalty Score", value: "NPS 62 — moderately loyal base", trend: "flat", weight: "low" },
+    ],
+    technique: {
+      title: "Price Elasticity Modelling",
+      body: "When a price gap widens significantly, use your elasticity coefficient to estimate demand erosion. A −0.4 elasticity means a 10% relative price increase leads to a 4% volume decline. Here the price gap doubled — apply elasticity to the incremental gap, not the absolute price, and layer in competitive shelf disruption separately."
+    },
+    lesson: { title: "Channel Mix Distortion", text: "The Costco launch created an optimism trap. Costco volume is real but comes in large, infrequent bulk orders — it inflates the period it lands in and depresses the next. The competitive shelf disruption at grocery was the dominant force, causing a 21% volume drop in traditional channels that Costco only partially offset." }
+  },
+  {
+    name: "The Recall Shadow",
+    sub: "Sports Drink · Post-Recall Recovery",
+    brief: "Six months ago, a voluntary recall of your Sports Hydration line due to a label mislabelling issue (no safety risk) devastated sales. Volume is slowly recovering. This period, you're launching a reformulated version with cleaner ingredients and new packaging. A major sports league partnership activates mid-period. However, retailer trust remains fragile — two chains are still requiring proof of third-party testing before expanding your facing.",
+    product: "Sports Hydration Drink",
+    baseline: [2100, 1400, 800, 600, 650, 700, 780, 860],
+    actualMultiplier: 1.38,
+    sliderMin: 400, sliderMax: 3500, sliderDefault: 1000,
+    signals: [
+      { icon: "🔬", label: "Reformulation Launch", value: "New formula + packaging rollout", trend: "up", weight: "high" },
+      { icon: "🏆", label: "Sports League Partnership", value: "Activates Week 2, national visibility", trend: "up", weight: "high" },
+      { icon: "🤝", label: "Retailer Trust Index", value: "2 major chains still gating expansion", trend: "down", weight: "high" },
+      { icon: "📰", label: "Media Coverage", value: "Recovery story covered by trade press", trend: "up", weight: "low" },
+      { icon: "👥", label: "Consumer Sentiment", value: "Brand trust recovering — 58% positive vs 71% pre-recall", trend: "flat", weight: "med" },
+      { icon: "📦", label: "Pipeline Inventory", value: "Retailers lean — low base to build from", trend: "up", weight: "med" },
+    ],
+    technique: {
+      title: "Recovery Curve Forecasting",
+      body: "Post-disruption recovery follows an S-curve, not a straight line. Early periods show slow recovery as trust rebuilds; acceleration happens when a catalyst (new launch, partnership) kicks in. Benchmark against your pre-disruption run rate but assume 60–80% recovery within the first catalyst period, not full recovery."
+    },
+    lesson: { title: "Optimism After Adversity", text: "The compelling recovery narrative — new formula, sports partnership, lean retail inventory — made it easy to over-forecast. The retailer gating was the binding constraint. Without shelf expansion at two key chains, volume recovery was capped regardless of consumer demand signals." }
+  },
+  {
+    name: "The Acquisition Effect",
+    sub: "Craft Beer · Post-Acquisition Integration",
+    brief: "Meridian just acquired a regional craft beer brand with cult status in the Pacific Northwest. You're now forecasting the first full quarter under Meridian's national distribution. The brand will go from 3 states to 28 states overnight. Craft beer loyalists are vocal on social media — some celebrating wider access, many fearing the brand will 'sell out.' Your sales team is extremely bullish.",
+    product: "Craft Beer (Acquired Brand)",
+    baseline: [420, 445, 460, 470, 490, 510, 525, 540],
+    actualMultiplier: 2.45,
+    sliderMin: 300, sliderMax: 4000, sliderDefault: 1600,
+    signals: [
+      { icon: "🗺️", label: "Distribution Expansion", value: "3 → 28 states in one quarter", trend: "up", weight: "high" },
+      { icon: "😤", label: "Brand Backlash Risk", value: "Vocal 'sellout' sentiment on Reddit/Twitter", trend: "down", weight: "med" },
+      { icon: "📣", label: "Sales Team Forecast", value: "Internal team projecting 4,000+ cases", trend: "up", weight: "low" },
+      { icon: "🍺", label: "Craft Beer Category", value: "Flat nationally, +12% in new markets", trend: "flat", weight: "med" },
+      { icon: "🏪", label: "New Retailer Commitments", value: "Confirmed shelf at 2,400 new locations", trend: "up", weight: "high" },
+      { icon: "⭐", label: "Brand Awareness (New Markets)", value: "Only 8% unaided awareness outside PNW", trend: "down", weight: "high" },
+    ],
+    technique: {
+      title: "New Market Penetration Modelling",
+      body: "In new geographies, awareness is the hidden ceiling. Even with shelf placement, you can't sell to consumers who don't know you exist. Start with awareness × trial rate × velocity to estimate realistic new-market contribution. Apply a ramp: months 1–3 are fill + trial; months 4–6 are repeat + momentum."
+    },
+    lesson: { title: "Internal Forecast Bias", text: "The sales team's 4,000-case projection was anchored in enthusiasm, not modelling. When a team has just completed an acquisition, optimism bias is at its peak. Discount internal forecasts upward by 30–50% when there's a major strategic change, and anchor instead on the awareness-to-trial math in new markets." }
+  }
+];
+
+const BIASES = [
+  { id: "anchor", label: "Anchoring on last period" },
+  { id: "optimism", label: "Optimism bias" },
+  { id: "recency", label: "Overweighting recent events" },
+  { id: "narrative", label: "Favoring narrative over data" },
+];
+
+// ============ STATE ============
+let state = {
+  currentRound: 0,
+  scores: [],
+  confidence: null,
+  checkedBiases: [],
+};
+
+// ============ CHART ============
+function drawChart(canvasId, data, color = '#c9a84c') {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 2;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+
+  const rawMin = Math.min(...data), rawMax = Math.max(...data);
+  const min = Math.floor(rawMin * 0.85 / 100) * 100;
+  const max = Math.ceil(rawMax * 1.1 / 100) * 100;
+
+  // Leave left padding for Y-axis labels
+  const pad = { l: 46, r: 12, t: 10, b: 10 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Y-axis grid lines + labels
+  const gridCount = 4;
+  ctx.font = '9px DM Mono, monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+
+  for (let i = 0; i <= gridCount; i++) {
+    const frac = i / gridCount;
+    const yVal = Math.round(min + (max - min) * (1 - frac));
+    const y = pad.t + ch * frac;
+
+    // Grid line
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(W - pad.r, y);
+    ctx.stroke();
+
+    // Y-axis label
+    ctx.fillStyle = '#6b7a6e';
+    const label = yVal >= 1000 ? (yVal / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(yVal);
+    ctx.fillText(label, pad.l - 6, y);
+  }
+
+  // Thin axis line
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t);
+  ctx.lineTo(pad.l, pad.t + ch);
+  ctx.stroke();
+
+  // Area fill
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
+  grad.addColorStop(0, color + '40');
+  grad.addColorStop(1, color + '00');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad.l + (i / (data.length - 1)) * cw;
+    const y = pad.t + ch - ((v - min) / (max - min)) * ch;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo(pad.l + cw, pad.t + ch);
+  ctx.lineTo(pad.l, pad.t + ch);
+  ctx.fill();
+
+  // Line
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad.l + (i / (data.length - 1)) * cw;
+    const y = pad.t + ch - ((v - min) / (max - min)) * ch;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Dots with value tooltips on hover (static labels for last point)
+  data.forEach((v, i) => {
+    const x = pad.l + (i / (data.length - 1)) * cw;
+    const y = pad.t + ch - ((v - min) / (max - min)) * ch;
+    ctx.fillStyle = '#0d0f0e';
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+
+    // Show value label on last data point
+    if (i === data.length - 1) {
+      const label = v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(v);
+      ctx.fillStyle = color;
+      ctx.font = 'bold 9px DM Mono, monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x + 6, y);
+    }
+  });
+}
+
+// ============ GAME LOGIC ============
+function startGame() {
+  state.currentRound = 0;
+  state.scores = [];
+  showScreen('screen-game');
+  document.getElementById('header-stats').style.display = 'flex';
+  loadRound();
+}
+
+function loadRound() {
+  const sc = SCENARIOS[state.currentRound];
+  const total = SCENARIOS.length;
+
+  // Update header
+  document.getElementById('hd-round').textContent = `${state.currentRound + 1}/${total}`;
+  updateAvgDisplay();
+  buildRoundDots();
+
+  // Scenario content
+  document.getElementById('scenario-tag').textContent = `Round ${state.currentRound + 1} of ${total}`;
+  document.getElementById('scenario-name').textContent = sc.name;
+  document.getElementById('scenario-sub').textContent = sc.sub;
+  document.getElementById('scenario-brief').textContent = sc.brief;
+
+  // Chart
+  setTimeout(() => {
+    drawChart('history-chart', sc.baseline);
+    const labels = sc.baseline.map((_, i) => `W${i - sc.baseline.length + 1}`);
+    document.getElementById('chart-labels').innerHTML = labels.map(l => `<span>${l}</span>`).join('');
+  }, 100);
+
+  // Signals
+  const grid = document.getElementById('signals-grid');
+  grid.innerHTML = '';
+  sc.signals.forEach(sig => {
+    const trendClass = sig.trend === 'up' ? 'trend-up' : sig.trend === 'down' ? 'trend-down' : 'trend-flat';
+    const trendIcon = sig.trend === 'up' ? '↑' : sig.trend === 'down' ? '↓' : '→';
+    const trendLabel = sig.trend === 'up' ? 'Positive signal' : sig.trend === 'down' ? 'Negative signal' : 'Neutral';
+    grid.innerHTML += `
+      <div class="signal">
+        <div class="signal-icon">${sig.icon}</div>
+        <div class="signal-label">${sig.label}</div>
+        <div class="signal-value">${sig.value}</div>
+        <div class="signal-trend ${trendClass}">${trendIcon} ${trendLabel}</div>
+      </div>`;
+  });
+
+  // Technique
+  const t = sc.technique;
+  document.getElementById('technique-content').innerHTML = `
+    <div style="font-size:12px;color:var(--gold);letter-spacing:1px;margin-bottom:8px;font-weight:500">${t.title}</div>
+    <div style="font-size:12px;color:var(--text);opacity:0.8;line-height:1.7">${t.body}</div>
+  `;
+
+  // Slider
+  const slider = document.getElementById('forecast-slider');
+  slider.min = sc.sliderMin;
+  slider.max = sc.sliderMax;
+  slider.value = sc.sliderDefault;
+  document.getElementById('slider-min').textContent = sc.sliderMin.toLocaleString() + ' cases';
+  document.getElementById('slider-max').textContent = sc.sliderMax.toLocaleString() + ' cases';
+  updateForecast(sc.sliderDefault);
+
+  // Confidence reset
+  state.confidence = null;
+  document.querySelectorAll('.conf-btn').forEach(b => b.className = 'conf-btn');
+  document.getElementById('conf-hint').textContent = '';
+
+  // Biases
+  state.checkedBiases = [];
+  const biasContainer = document.getElementById('bias-checks');
+  biasContainer.innerHTML = '';
+  BIASES.forEach(b => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;';
+    div.innerHTML = `
+      <div id="bias-box-${b.id}" style="width:14px;height:14px;border:1px solid var(--border);border-radius:2px;transition:all 0.15s;flex-shrink:0"></div>
+      <span style="font-size:11px;color:var(--muted)">${b.label}</span>`;
+    div.onclick = () => toggleBias(b.id, div);
+    biasContainer.appendChild(div);
+  });
+
+  // Score history
+  if (state.scores.length > 0) {
+    document.getElementById('score-history-card').style.display = 'block';
+    renderScoreHistory();
+  }
+
+  // Reasoning
+  document.getElementById('reasoning-box').value = '';
+}
+
+function updateForecast(val) {
+  const num = parseInt(val);
+  document.getElementById('forecast-display').textContent = num.toLocaleString();
+}
+
+function setConfidence(level) {
+  state.confidence = level;
+  document.querySelectorAll('.conf-btn').forEach(b => b.className = 'conf-btn');
+  document.getElementById(`conf-${level}`).className = `conf-btn active-${level}`;
+  const hints = {
+    low: "Low confidence = wide mental range. Score bonus if actual is in ±30% of your forecast.",
+    med: "Medium confidence = moderate range. You see the signals but uncertainty remains.",
+    high: "High confidence = committed. Score bonus if accurate, penalty if way off."
+  };
+  document.getElementById('conf-hint').textContent = hints[level];
+}
+
+function toggleBias(id, div) {
+  const idx = state.checkedBiases.indexOf(id);
+  const box = document.getElementById(`bias-box-${id}`);
+  if (idx === -1) {
+    state.checkedBiases.push(id);
+    box.style.background = 'var(--gold)';
+    box.style.borderColor = 'var(--gold)';
+    box.innerHTML = '<span style="font-size:10px;color:var(--bg);display:block;text-align:center;line-height:14px">✓</span>';
+  } else {
+    state.checkedBiases.splice(idx, 1);
+    box.style.background = '';
+    box.style.borderColor = 'var(--border)';
+    box.innerHTML = '';
+  }
+}
+
+function submitForecast() {
+  if (!state.confidence) {
+    showToast("Please select your confidence level before submitting.");
+    return;
+  }
+  const forecastVal = parseInt(document.getElementById('forecast-slider').value);
+  showResult(forecastVal);
+}
+
+function showResult(forecast) {
+  const sc = SCENARIOS[state.currentRound];
+  const baseline = sc.baseline[sc.baseline.length - 1];
+  const actual = Math.round(baseline * sc.actualMultiplier);
+  const error = Math.abs(forecast - actual) / actual;
+  const errorPct = Math.round(error * 100);
+
+  // Score calculation
+  let accuracyScore = Math.max(0, Math.round(100 - errorPct * 1.8));
+  
+  // Confidence adjustment
+  let confBonus = 0;
+  if (state.confidence === 'high') {
+    confBonus = error < 0.1 ? 15 : error > 0.3 ? -10 : 0;
+  } else if (state.confidence === 'low') {
+    confBonus = error < 0.3 ? 5 : 0;
+  }
+
+  // Reasoning bonus
+  const reasoning = document.getElementById('reasoning-box').value.trim();
+  const reasoningBonus = reasoning.length > 60 ? 8 : reasoning.length > 20 ? 4 : 0;
+
+  const totalScore = Math.min(100, Math.max(0, accuracyScore + confBonus + reasoningBonus));
+
+  const scoreData = {
+    round: state.currentRound + 1,
+    name: sc.name,
+    forecast, actual, error: errorPct, score: totalScore,
+    confidence: state.confidence
+  };
+  state.scores.push(scoreData);
+
+  // UI
+  document.getElementById('result-round-badge').textContent = `Round ${state.currentRound + 1}`;
+  document.getElementById('result-your').textContent = forecast.toLocaleString();
+  document.getElementById('result-actual').textContent = actual.toLocaleString();
+
+  // Error badge
+  const errBadge = document.getElementById('error-badge');
+  const errClass = errorPct < 10 ? 'error-good' : errorPct < 25 ? 'error-ok' : 'error-bad';
+  const dir = forecast > actual ? 'Over by' : 'Under by';
+  errBadge.className = `error-badge ${errClass}`;
+  errBadge.textContent = `${dir} ${errorPct}% (${Math.abs(forecast - actual).toLocaleString()} cases)`;
+
+  // Score
+  document.getElementById('result-score-num').textContent = totalScore;
+  document.getElementById('result-score-num').style.color = totalScore >= 75 ? 'var(--green)' : totalScore >= 50 ? 'var(--amber)' : 'var(--red)';
+
+  const grades = [[90,'Oracle','Near-perfect. You read the signals masterfully.'],[75,'Expert','Strong forecast. Your process is working.'],[55,'Analyst','Decent. A few signals escaped your attention.'],[35,'Trainee','Rough round. The debrief has answers.'],[0,'Novice','Every miss is a lesson. Study the debrief.']];
+  const [,grade,meta] = grades.find(([min]) => totalScore >= min);
+  document.getElementById('result-grade').textContent = grade;
+  document.getElementById('result-meta-text').textContent = meta;
+
+  // Breakdown
+  document.getElementById('result-breakdown').innerHTML = `
+    <div class="breakdown-item">
+      <div class="breakdown-label">Accuracy Score</div>
+      <div class="breakdown-val" style="color:${accuracyScore>=70?'var(--green)':accuracyScore>=45?'var(--amber)':'var(--red)'}">${accuracyScore}</div>
+    </div>
+    <div class="breakdown-item">
+      <div class="breakdown-label">Confidence Bonus</div>
+      <div class="breakdown-val" style="color:${confBonus>=0?'var(--green)':'var(--red)'}">${confBonus >= 0 ? '+' : ''}${confBonus}</div>
+    </div>
+    <div class="breakdown-item">
+      <div class="breakdown-label">Reasoning Bonus</div>
+      <div class="breakdown-val" style="color:var(--green)">+${reasoningBonus}</div>
+    </div>
+  `;
+
+  // Debrief
+  const direction = forecast > actual ? 'over-forecasted' : 'under-forecasted';
+  const signalsMissed = sc.signals.filter(s => s.weight === 'high' && ((forecast > actual && s.trend === 'down') || (forecast < actual && s.trend === 'up')));
+  document.getElementById('debrief-content').innerHTML = `
+    <div style="font-size:13px;color:var(--text);opacity:0.85;line-height:1.8;margin-bottom:20px">
+      You ${direction} by ${errorPct}%. The actual demand was <strong style="color:var(--gold)">${actual.toLocaleString()} cases</strong>.
+      ${signalsMissed.length > 0 ? ` The highest-impact signals you may have under-weighted: <strong>${signalsMissed.map(s=>s.label).join(', ')}</strong>.` : ' You weighted the key signals well.'}
+    </div>
+    <div style="font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">What Actually Happened</div>
+    <div style="font-size:13px;color:var(--text);opacity:0.75;line-height:1.7">${getActualExplanation(sc, actual, forecast)}</div>
+  `;
+
+  // Signal review
+  const reviewHtml = sc.signals.map(sig => {
+    const impact = sig.weight === 'high' ? '⬛⬛⬛' : sig.weight === 'med' ? '⬛⬛◻' : '⬛◻◻';
+    return `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:18px">${sig.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--text);margin-bottom:2px">${sig.label}</div>
+          <div style="font-size:10px;color:var(--muted)">${sig.value}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:var(--gold-dim);letter-spacing:1px">${impact}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">Impact</div>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('signal-review').innerHTML = reviewHtml;
+
+  // Lesson
+  document.getElementById('lesson-title').textContent = sc.lesson.title;
+  document.getElementById('lesson-text').textContent = sc.lesson.text;
+
+  // Show next/end buttons
+  const isLast = state.currentRound === SCENARIOS.length - 1;
+  document.getElementById('next-btn').style.display = isLast ? 'none' : 'inline-block';
+  document.getElementById('end-btn').style.display = isLast ? 'inline-block' : 'none';
+
+  showScreen('screen-result');
+}
+
+function getActualExplanation(sc, actual, forecast) {
+  const explanations = {
+    "Summer Storm": `The heat wave drove a 42% demand spike above baseline. The viral TikTok contributed approximately 15–20% incremental lift, but the shelf space reduction partially offset this. Most forecasters who anchored on the viral moment over-forecasted; those who anchored only on baseline under-forecasted.`,
+    "The January Effect": `The seasonal lift was real (+22% vs December), and the end-cap promotion added substantial incremental volume. The storm suppressed in-store traffic during weeks 2–3 but was partially offset by online orders. Net: demand came in 18% above your pre-period baseline.`,
+    "The Hangover": `Post-promotional regression was steep. The low repeat purchase rate (22%) meant the Super Bowl trial customers mostly didn't convert. The gym partnership added modest volume but didn't offset the promotional cliff. Actual demand was 62% of peak — a classic post-promo hangover.`,
+    "Grocery Roulette": `New distribution created an initial fill-in surge of 2.5× volume. Even with Midwest regional lag, the raw store count expansion drove significant absolute demand. The fill period dominated weeks 1–4. Steady-state velocity will emerge in months 2–3.`,
+    "The Perfect Storm": `The production constraint was decisive. Despite strong demand signals (festivals + heat), the 30% production reduction during week 3 resulted in lost sales of approximately 400 cases. Distributor forward-buying in anticipation of the price increase inflated early orders but pulled forward future demand, depressing weeks 3–4.`,
+    "The Health Pivot": `Podcast-driven demand built steadily through the period rather than spiking immediately. The pharmacy planogram expansion added consistent velocity across 1,200 locations. Despite the ingredient delay creating production pressure in weeks 3–4, demand outpaced supply in the final stretch. Net result: 65% above baseline, with unfulfilled orders spilling into the next period.`,
+    "Price War": `The competitor's $1.99 end-cap displaced approximately 25% of your grocery volume at the affected accounts. However, the Costco launch injected a significant initial fill order in weeks 1–2, partially masking the channel erosion. Net demand landed at 79% of prior period — the competitive pressure was real but Costco's bulk buying cushioned the blow.`,
+    "The Recall Shadow": `The reformulation and sports partnership triggered a faster-than-expected recovery. Lean retailer inventory meant even modest consumer pull created strong reorder signals. The two gated chains approved limited expansion mid-period after receiving third-party testing results, unlocking incremental volume in weeks 3–4. Overall demand came in 38% above the prior period's recovering baseline.`,
+    "The Acquisition Effect": `The distribution expansion to 28 states created a massive initial fill-in order across 2,400 new retail locations. Even with only 8% brand awareness in new markets, the sheer volume of store fills dominated the period. Social backlash had minimal measurable impact on sell-through — the 'sellout' narrative is louder online than in actual purchase behavior. Demand landed 2.45× the pre-acquisition baseline.`
+  };
+  return explanations[sc.name] || 'The signals interacted in complex ways. Review each signal\'s realized impact above.';
+}
+
+function nextRound() {
+  state.currentRound++;
+  showScreen('screen-game');
+  loadRound();
+}
+
+function goToIntro() {
+  showFinalScreen();
+}
+
+function showFinalScreen() {
+  const avg = Math.round(state.scores.reduce((a, b) => a + b.score, 0) / state.scores.length);
+  const level = avg >= 85 ? 'Master Forecaster' : avg >= 70 ? 'Expert Analyst' : avg >= 55 ? 'Senior Planner' : avg >= 40 ? 'Demand Analyst' : 'Forecasting Trainee';
+
+  document.getElementById('hd-level').textContent = level;
+
+  document.getElementById('final-breakdown').innerHTML = state.scores.map(s => `
+    <div class="breakdown-item">
+      <div class="breakdown-label">Round ${s.round} · ${s.name}</div>
+      <div class="breakdown-val" style="color:${s.score>=75?'var(--green)':s.score>=50?'var(--amber)':'var(--red)'}">${s.score}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">${s.error}% error</div>
+    </div>`).join('');
+
+  const allLessons = SCENARIOS.slice(0, state.scores.length).map(sc => `
+    <div class="lesson-box" style="margin-bottom:12px">
+      <div class="lesson-title">${sc.lesson.title}</div>
+      <div class="lesson-text">${sc.lesson.text}</div>
+    </div>`).join('');
+
+  document.getElementById('final-lessons').innerHTML = `
+    <div style="font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin:32px 0 16px">Key Lessons from Your Rounds</div>
+    ${allLessons}
+    <div style="text-align:center;padding:32px;border:1px solid var(--border);border-radius:4px;background:var(--surface);margin-top:24px">
+      <div style="font-family:'DM Serif Display',serif;font-size:40px;margin-bottom:8px;color:var(--gold)">${avg}</div>
+      <div style="font-size:11px;letter-spacing:2px;color:var(--muted)">AVERAGE SCORE · ${level.toUpperCase()}</div>
+    </div>
+  `;
+
+  showScreen('screen-final');
+}
+
+function resetGame() {
+  state = { currentRound: 0, scores: [], confidence: null, checkedBiases: [] };
+  document.getElementById('header-stats').style.display = 'none';
+  document.getElementById('score-history-card').style.display = 'none';
+  showScreen('screen-intro');
+}
+
+// ============ HELPERS ============
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function buildRoundDots() {
+  const container = document.getElementById('round-dots');
+  container.innerHTML = '';
+  SCENARIOS.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'round-dot' + (i < state.currentRound ? ' done' : i === state.currentRound ? ' current' : '');
+    container.appendChild(dot);
+  });
+}
+
+function updateAvgDisplay() {
+  if (state.scores.length === 0) {
+    document.getElementById('hd-avg').textContent = '—';
+    return;
+  }
+  const avg = Math.round(state.scores.reduce((a, b) => a + b.score, 0) / state.scores.length);
+  document.getElementById('hd-avg').textContent = avg;
+}
+
+function renderScoreHistory() {
+  const list = document.getElementById('score-history-list');
+  list.innerHTML = state.scores.map(s => `
+    <div class="history-row">
+      <div class="history-label">${s.name}</div>
+      <div style="font-size:10px;color:var(--muted)">${s.error}% err</div>
+      <div class="history-score" style="color:${s.score>=75?'var(--green)':s.score>=50?'var(--amber)':'var(--red)'}">${s.score}</div>
+    </div>`).join('');
+
+  const avg = Math.round(state.scores.reduce((a, b) => a + b.score, 0) / state.scores.length);
+  document.getElementById('avg-bar').style.width = avg + '%';
+  document.getElementById('avg-score-text').textContent = avg;
+}
+</script>
+</body>
+</html>
